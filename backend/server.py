@@ -1,10 +1,12 @@
 import os
 from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS
 from pydub import AudioSegment
 from scipy.signal import butter, lfilter
 import numpy as np
 
 app = Flask(__name__)
+CORS(app)
 
 # Define the upload folder inside the same directory as this script
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -74,16 +76,15 @@ def split_audio(file_path):
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
-    if 'file' not in request.files:
+    print(request.form)
+    if 'audio-record' not in request.form:
+        print("file not in request")
         return jsonify({'error': 'No file part'}), 400
 
-    file = request.files['file']
+    file = request.form.get('audio-record')
+    filename = request.form.get('filename')
 
-    if file.filename == '':
-        return jsonify({'error': 'No selected file'}), 400
-
-    if file and allowed_file(file.filename):
-        filename = file.filename
+    if file:
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(file_path)
 
@@ -94,13 +95,8 @@ def upload_file():
             'ultrasound_file': ultrasound_file_path,
             'normal_file': normal_file_path
         }), 200
-
+    print("error uploading file")
     return jsonify({'error': 'Invalid file type'}), 400
-
-
-@app.route('/upload/<filename>', methods=['GET'])
-def uploaded_file(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 
 if __name__ == '__main__':
